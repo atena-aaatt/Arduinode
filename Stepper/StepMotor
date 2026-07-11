@@ -1,0 +1,50 @@
+#include <Stepper.h>
+#include <SoftwareSerial.h>
+
+const int tamAdimSayisi = 2048;  // BYJ48'in bir tam turu için adım sayısı
+const int adimSayisi = 512;      // Her komutta 512 adım (yaklaşık 1/4 tur)
+
+Stepper stepMotor(tamAdimSayisi, 8, 10, 9, 11);
+SoftwareSerial bluetooth(7, 6);  // RX, TX
+
+String komut = "";
+float turSayisi = 0;  // toplam tur sayısı (ileri - geri dahil)
+
+void setup() {
+  Serial.begin(9600);
+  bluetooth.begin(9600);
+
+  stepMotor.setSpeed(10);  // RPM cinsinden motor hızı
+
+  Serial.println("Bluetooth Step Motor Kontrolu Basladi");
+  bluetooth.println("Step Motor Kontrol Hazir!");
+}
+
+void loop() {
+  if (bluetooth.available()) {
+    komut = bluetooth.readStringUntil('\n');
+    komut.trim();
+
+    Serial.print("Gelen komut: ");
+    Serial.println(komut);
+
+    if (komut == "R") {
+      Serial.println("Motor saga donuyor...");
+      stepMotor.step(adimSayisi);
+      turSayisi += (float)adimSayisi / tamAdimSayisi;  // tur sayısını güncelle
+      Serial.println("Motor durdu.");
+    } else if (komut == "L") {
+      Serial.println("Motor sola donuyor...");
+      stepMotor.step(-adimSayisi);
+      turSayisi -= (float)adimSayisi / tamAdimSayisi;
+      Serial.println("Motor durdu.");
+    }
+
+    // Güncel tur bilgisini gönder
+    Serial.print("Toplam tur sayisi: ");
+    Serial.println(turSayisi, 2);  // 2 ondalık basamakla göster
+
+    bluetooth.print("Toplam tur sayisi: ");
+    bluetooth.println(turSayisi, 2);
+  }
+}

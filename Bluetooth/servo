@@ -1,0 +1,169 @@
+#include <SoftwareSerial.h>
+
+SoftwareSerial baglanti(8, 7);  //rx, tx
+
+byte motor1_ileri = 2;  //motor1 ileri pini
+byte motor1_geri = 3;   //motor1 geri pini
+
+byte motor2_ileri = 9;  //motor2 ileri pini
+byte motor2_geri = 10;  //motor2 geri pini
+
+byte buzzerPin = 11;
+
+byte motor1_hiz = 6;  //motor1 hız kontrol pini
+byte motor2_hiz = 5;  //motor2 hız kontrol pini
+
+byte ledPin = 12;
+
+char komut = 'S';  //kontrol komutlarını saklayacak değişken
+
+
+void setup() {
+  Serial.begin(9600);    //seri ekran başlar.
+  baglanti.begin(9600);  //baglanti nesnesini başlattık
+
+  pinMode(motor1_ileri, OUTPUT);  //motor1_ileri çıkış olarak tanımlandı.
+  pinMode(motor1_geri, OUTPUT);   //motor1_geri çıkış olarak tanımlandı.
+  pinMode(motor2_ileri, OUTPUT);
+  pinMode(motor2_geri, OUTPUT);
+
+  pinMode(buzzerPin, OUTPUT);
+
+  pinMode(motor1_hiz, OUTPUT);
+  pinMode(motor2_hiz, OUTPUT);
+
+  pinMode(ledPin, OUTPUT);
+}
+
+void loop() {
+  while (baglanti.available()) {
+    komut = baglanti.read();
+    Serial.println("Komut: " + String(komut));
+  }
+  switch (komut) {
+    case 'F':
+      motor_ileri();
+      break;
+
+    case 'B':
+      motor_geri();
+      break;
+
+    case 'R':
+      motorileri_sag();
+      break;
+
+    case 'L':
+      motorileri_sol();
+      break;
+
+    case 'Y':
+      buzzerKontrol();
+      digitalWrite(buzzerPin, LOW);
+      break;
+
+    case '0':
+      analogWrite(motor1_hiz, 0);
+      analogWrite(motor2_hiz, 0);
+      break;
+
+    case '1':
+      analogWrite(motor1_hiz, 25);
+      analogWrite(motor2_hiz, 25);
+      break;
+
+    case '2':
+      analogWrite(motor1_hiz, 50);
+      analogWrite(motor2_hiz, 50);
+      break;
+
+    case '3':
+      analogWrite(motor1_hiz, 75);
+      analogWrite(motor2_hiz, 75);
+      break;
+
+    case '4':
+      analogWrite(motor1_hiz, 100);
+      analogWrite(motor2_hiz, 100);
+      break;
+
+    case '5':
+      analogWrite(motor1_hiz, 125);
+      analogWrite(motor2_hiz, 125);
+      break;
+
+    case '6':
+      analogWrite(motor1_hiz, 150);
+      analogWrite(motor2_hiz, 150);
+      break;
+
+    case '7':
+      analogWrite(motor1_hiz, 175);
+      analogWrite(motor2_hiz, 175);
+      break;
+
+    case '8':
+      analogWrite(motor1_hiz, 200);
+      analogWrite(motor2_hiz, 200);
+      break;
+
+    case '9':
+      analogWrite(motor1_hiz, 255);
+      analogWrite(motor2_hiz, 255);
+      break;
+
+    case 'X':
+      digitalWrite(12, HIGH);
+
+    case 'x':
+      digitalWrite(12, LOW);
+
+    default:
+      motor_dur();
+      digitalWrite(buzzerPin, LOW);
+      break;
+  }
+}
+
+
+void motor_ileri() {  //motorları ileri hareket ettirir.
+  digitalWrite(motor1_ileri, HIGH);
+  digitalWrite(motor2_ileri, HIGH);
+  digitalWrite(motor1_geri, LOW);
+  digitalWrite(motor2_geri, LOW);
+}
+
+void motor_geri() {  //motorları geri hareket ettirir.
+  digitalWrite(motor1_ileri, LOW);
+  digitalWrite(motor2_ileri, LOW);
+  digitalWrite(motor1_geri, HIGH);
+  digitalWrite(motor2_geri, HIGH);
+}
+
+void motorileri_sag() {
+  digitalWrite(motor1_ileri, HIGH);
+  digitalWrite(motor1_geri, LOW);
+  digitalWrite(motor2_ileri, LOW);
+  digitalWrite(motor2_geri, LOW);
+}
+
+void motorileri_sol() {
+  digitalWrite(motor1_ileri, LOW);
+  digitalWrite(motor1_geri, LOW);
+  digitalWrite(motor2_ileri, HIGH);
+  digitalWrite(motor2_geri, LOW);
+}
+
+void motor_dur() {  //motorları durdurur.
+  digitalWrite(motor1_ileri, LOW);
+  digitalWrite(motor1_geri, LOW);
+  digitalWrite(motor2_ileri, LOW);
+  digitalWrite(motor2_geri, LOW);
+}
+
+void buzzerKontrol() {
+  digitalWrite(buzzerPin, HIGH);
+  delay(2000);
+  digitalWrite(buzzerPin, LOW);
+  delay(2000);
+}

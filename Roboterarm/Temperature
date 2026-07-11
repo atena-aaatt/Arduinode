@@ -1,0 +1,40 @@
+#include <SoftwareSerial.h>
+
+SoftwareSerial baglanti(8, 7);  //rx, tx
+
+byte nemSensorPin = A0;  //nem sensörünün bağlı olduğu pin
+byte suMotorPin = 13;    //su motorunun pin
+
+int nemDegeri;  //nem degeri saklanacak.
+
+String gelenVeri;  //Bluetooth gelen veriler saklanacak
+
+
+void setup() {
+  Serial.begin(9600);
+  baglanti.begin(9600);
+
+  pinMode(suMotorPin, OUTPUT);
+}
+
+void loop() {
+  /*Mobil Uygulamadan Gelen Verileri Okuyoruz*/
+  while (baglanti.available()) {
+    delay(3);
+    char gelenKarakter = baglanti.read();
+    gelenVeri += gelenKarakter;
+  }
+  delay(500);
+  Serial.println(gelenVeri);  //gelen verileri ekrana yazdırdık.
+
+  /*Telefon gelen veriyi kontrol edip nem değerini okutup telefona gönderir*/
+  if (gelenVeri == "nem") {
+    nemDegeri = analogRead(nemSensorPin);
+    baglanti.println(nemDegeri);
+  } else if (gelenVeri == "S") { //su motorunu çalıştırıyor
+    digitalWrite(suMotorPin, HIGH);
+  } else {
+    digitalWrite(suMotorPin, LOW);
+  }
+  gelenVeri = ""; //gelen veriyi temizler.
+}

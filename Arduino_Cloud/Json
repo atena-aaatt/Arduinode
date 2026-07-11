@@ -1,0 +1,114 @@
+#include <ESP8266WiFi.h>       // ESP8266 için WiFi bağlantısı sağlayan kütüphane
+#include <WiFiClientSecure.h>  // HTTPS (SSL) bağlantısı için gerekli kütüphane (bu örnekte HTTP kullanılıyor ama eklenmiş)
+#include <ArduinoJson.h>       // JSON verisini ayrıştırmak için kullanılan kütüphane
+
+// Wi-Fi ağı bilgileri
+const char* ssid = "TestHotspot";   // WiFi ağının adı (SSID)
+const char* password = "12345678";  // WiFi şifresi
+
+// OpenWeatherMap API bilgileri
+const char* host = "api.openweathermap.org";         // OpenWeatherMap sunucu adresi
+String city = "Ankara,tr";                           // Hava durumu verisi alınacak şehir ve ülke kodu
+String apiKey = "Your_KEY";  // API anahtarınız (herkese açık paylaşılmamalı!)
+
+//thingspeak bilgileri
+const char* tshost = "api.thingspeak.com";
+String tsapiKey = "WBJB9J68E84A0PI6";
+
+void setup() {
+  Serial.begin(115200);  // Seri haberleşmeyi başlat (115200 baud)
+  delay(100);            // Kısa bir bekleme
+
+  Serial.println("WiFi bağlantısı kuruluyor...");
+  WiFi.begin(ssid, password);  // WiFi ağına bağlanma işlemi başlatılır
+
+  while (WiFi.status() != WL_CONNECTED) {  // WiFi bağlanana kadar beklenir
+    delay(500);
+    Serial.print(".");
+  }
+
+  Serial.println("Bağlandı!");  // Bağlantı başarılıysa seri ekrana yazılır
+}
+
+void loop() {
+  WiFiClient client;        // WiFi istemcisi (HTTP bağlantısı için)
+  const int httpPort = 80;  // HTTP bağlantı noktası (HTTPS olsaydı 443 olurdu)
+
+  if (!client.connect(host, httpPort)) {  // Sunucuya bağlanmayı dene
+    Serial.println("Bağlantı hatası!");   // Bağlantı başarısızsa hata ver
+    return;
+  }
+
+  // API URL'si oluşturuluyor (şehir, API anahtarı ve ölçüm birimi)
+  String url = "/data/2.5/weather?q=" + city + "&appid=" + apiKey + "&units=metric";
+
+  // HTTP GET isteği gönderiliyor
+  client.print(String("GET ") + url + " HTTP/1.1\r\n" +  // GET isteği başlığı
+               "Host: " + host + "\r\n" +                // Host bilgisi
+               "Connection: close\r\n\r\n");             // Bağlantı kapatılacak
+
+  // Sunucudan yanıt bekleniyor
+  unsigned long zamanAsimi = millis();
+  while (!client.available()) {
+    if (millis() - zamanAsimi > 5000) {
+      Serial.println("Zaman asimi, sunucu yanit vermedi.");
+      client.stop();
+      return;
+    }
+    delay(100);  // Yanıt gelene kadar beklenir
+  }
+
+  String line;
+  while (client.available()) {            // Veriler geldikçe sırayla okunur
+    line = client.readStringUntil('\r');  // '\r' karakterine kadar oku
+    if (line.startsWith("{")) break;      // JSON veri bloğu başladıysa çık
+  }
+
+  // JSON ayrıştırma için bellek ayırılır
+  DynamicJsonDocument doc(1024);                            // JSON verisi için dinamik alan oluştur
+  DeserializationError error = deserializeJson(doc, line);  // JSON verisi ayrıştırılır
+
+  if (error) {  // Eğer hata oluşursa
+    Serial.print("JSON ayrıştırma hatası: ");
+    Serial.println(error.c_str());  // Hata mesajı yazdır
+    return;
+  }
+
+  // JSON'dan sıcaklık ve hava durumu bilgileri çekilir
+  float temp = doc["main"]["temp"];                            // Sıcaklık verisi
+  const char* description = doc["weather"][0]["description"];  // Hava durumu açıklaması
+  float hum = doc["main"]["humidity"];
+
+  // Veriler seri monitöre yazdırılır
+  Serial.print(city + " sehrinin " + " Sıcaklık Degeri: ");
+  Serial.print(temp);
+  Serial.println(" °C");
+  Serial.print("Nem Degeri: ");
+  Serial.println(hum);
+
+  Serial.print(city + " sehrinin " + " Havası: ");
+  Serial.println(description);
+
+  client.stop();
+  delay(1000);
+
+  if (client.connect(tshost, 80)) {
+   String gidenVeri = "api_key=" + tsapiKey + "&field1=" + String(temp) + "&field2=" + String(hum);
+
+    client.println("POST /update HTTP/1.1");
+    client.println("Host: api.thingspeak.com");
+    client.println("Connection: close");
+    client.println("Content-Type: application/x-www-form-urlencoded");
+    client.print("Content-Length: ");
+    client.println(gidenVeri.length());
+    client.println();
+    client.println(gidenVeri);
+
+    Serial.println("Sicaklik ve nem degerleri gönderildi.");
+  } else {
+    Serial.println("Thingspeak bağlantı hatası";)
+  }
+  client.stop();
+
+  delay(60000);  // 1 dakika beklenir (veri her dakikada bir alınır)
+}

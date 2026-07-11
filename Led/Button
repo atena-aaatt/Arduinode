@@ -1,0 +1,40 @@
+/*Buton ile LED Kontrol Uygulaması*/
+
+byte ledPin = 13;   //13 numaralı LED pini değişkende sakladık.
+byte butonPin = 2;  //2 numaralı buton pini değişkende sakladık.
+
+byte butonYeni;      //Kullanıcının butona basma durumunu saklayacağız.
+byte butonEski = 1;  //Butonun basılma durumunu saklayacağız.
+bool ledDurumu = false;  //LED'in açık/kapalı durumlarını saklayacağız.
+
+void setup() {
+  pinMode(ledPin, OUTPUT);   //LED'i çıkış pini olarak tanımladık.
+  pinMode(butonPin, INPUT);  //Buton'u giriş pini olarak tanımladık.
+  Serial.begin(9600);        //Veri okumak için seri ekranı başlattık.
+}
+
+void loop() {
+  butonYeni = digitalRead(butonPin);
+
+  if (butonEski == 0 && butonYeni == 1) {  //Kullanıcının butona basmasını kontrol edelim
+    if (ledDurumu == false) {                  //LED kapalıysa
+      digitalWrite(ledPin, HIGH);          //LED'i açalım.
+      ledDurumu = true;                       //ledDurumu değişkenini 1 yaparak LED'i açık hale getirelim.
+      Serial.print("butonYeni: ");
+      Serial.println(butonYeni);
+
+      Serial.print("butonEski");
+      Serial.println(butonEski);
+    } else {                               //LED açıksa
+      digitalWrite(ledPin, LOW);           //LED'i kapatalım.
+      ledDurumu = false;                       //ledDurumu değişkenini 0 yaparak LED'i kapalı hale getirelim.
+      Serial.print("butonYeni: ");
+      Serial.println(butonYeni);
+
+      Serial.print("butonEski");
+      Serial.println(butonEski);
+    }
+  }
+  butonEski = butonYeni; //butonYeni değerini butonEski'ye aktardık.
+  delay(100); //100 ms bekleme süresi ekledik.
+}

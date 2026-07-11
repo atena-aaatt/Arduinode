@@ -1,0 +1,90 @@
+#include <SoftwareSerial.h>
+
+SoftwareSerial baglanti(8, 7);  //rx, tx
+String gelenVeri;
+
+byte trigPin = 2;
+byte echoPin = 3;
+
+byte suSeviyePin = A0;
+byte buzzerPin = 13;
+
+bool sistemAktif = true;
+
+float mesafe;
+int sure;
+
+void setup() {
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
+  pinMode(buzzerPin, OUTPUT);
+
+  baglanti.begin(9600);
+  Serial.begin(9600);
+}
+
+void loop() {
+  while (baglanti.available()) {
+    delay(3);
+    char gelenKarakter = baglanti.read();
+    gelenVeri += gelenKarakter;
+  }
+
+
+  if (gelenVeri == "1") {
+    sistemAktif = true;
+    mesajVer("Sistem Aktif");
+  } else if (gelenVeri == "0") {
+    sistemAktif = false;
+    mesajVer("Sistem Pasif");
+  }
+
+  Serial.println("Gelen Veri: " + gelenVeri);
+  delay(1000);
+
+  if (sistemAktif) {
+    mesafe = mesafeOlc();
+    int suSeviyesi = analogRead(suSeviyePin);
+
+    Serial.println("Mesafe: " + String(mesafe));
+
+    if (mesafe < 20) {
+      mesajVer("izinsiz giriş algılandı");
+      digitalWrite(buzzerPin, HIGH);
+      delay(250);
+      digitalWrite(buzzerPin, LOW);
+      delay(250);
+    }
+
+    Serial.println("Su Seviyesi: " + String(suSeviyesi));
+
+    if (suSeviyesi > 700) {
+      mesajVer("Su seviyesi yükseldi");
+      digitalWrite(buzzerPin, HIGH);
+      delay(250);
+      digitalWrite(buzzerPin, LOW);
+      delay(250);
+    }
+    digitalWrite(buzzerPin, LOW);
+  }
+  gelenVeri = "";
+  delay(200);
+}
+
+float mesafeOlc() {
+  digitalWrite(trigPin, LOW);
+  delay(3);
+
+  digitalWrite(trigPin, HIGH);
+  delay(200);
+  digitalWrite(trigPin, LOW);
+
+  sure = pulseIn(echoPin, HIGH);
+  mesafe = (sure / 2) / 29.1;
+  return mesafe;
+}
+
+void mesajVer(String mesaj) {
+  Serial.println(mesaj);
+  baglanti.println(mesaj);
+}

@@ -1,0 +1,41 @@
+/*Potansiyometre pinlerini saklar*/
+const byte kirmiziPot = A0;
+const byte yesilPot = A1;
+const byte maviPot = A2;
+
+/*Potansiyometre değerlerini saklar*/
+int kirmiziDeger, yesilDeger, maviDeger;
+
+/*RGB LED pinlerini saklar*/
+const byte kirmiziPin = 9;
+const byte yesilPin = 10;
+const byte maviPin = 11;
+
+void setup() {
+  pinMode(kirmiziPin, OUTPUT);
+  pinMode(yesilPin, OUTPUT);
+  pinMode(maviPin, OUTPUT);
+
+  Serial.begin(9600);
+}
+
+void loop() {
+  kirmiziDeger = analogRead(kirmiziPot);
+  yesilDeger = analogRead(yesilPot);
+  maviDeger = analogRead(maviPot);
+
+  kirmiziDeger = map(kirmiziDeger, 0, 1023, 0, 255);
+  yesilDeger = map(yesilDeger, 0, 1023, 0, 255);
+  maviDeger = map(maviDeger, 0, 1023, 0, 255);
+
+  analogWrite(kirmiziPin, kirmiziDeger);
+  analogWrite(yesilPin, yesilDeger);
+  analogWrite(maviPin, maviDeger);
+
+  Serial.print("Kirmizi: ");
+  Serial.println(kirmiziDeger);
+  Serial.print("Yesil: ");
+  Serial.println(yesilDeger);
+  Serial.print("Mavi: ");
+  Serial.println(maviDeger);
+}

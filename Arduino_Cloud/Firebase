@@ -1,0 +1,125 @@
+#include <ArduinoJson.h>
+#include <ESP8266WiFi.h>
+#include <FirebaseESP8266.h>
+
+/*WiFi Bilgileri*/
+const char* ssid = "TestHotspot";
+const char* password = "12345678";
+
+/*Veritabanı bilgileri*/
+FirebaseConfig config;
+FirebaseAuth auth;
+FirebaseData firebaseData;
+
+/*OpenWeatherMap Bilgileri*/
+const char* weatherHost = "api.openweathermap.org";
+String city = "İstanbul,tr";
+String weatherApiKey = "Your_Key";
+
+WiFiClient client;
+
+void setup() {
+  // put your setup code here, to run once:
+
+  Serial.begin(9600);
+  delay(100);
+
+  Serial.println("Wi-Fi bağlantısı kuruluyor.");
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("WiFi bağlantısı sağlandı.");
+
+  config.database_url = "https://havadurumu-685d5-default-rtdb.europe-west1.firebasedatabase.app";
+  config.signer.tokens.legacy_token = "S99XSYz1mpO6dcHdfXTIjt8NH1noMJHdYIded957";
+
+  Firebase.begin(&config, &auth);
+  Firebase.reconnectWiFi(true);
+}
+
+void loop() {
+  // put your main code here, to run repeatedly:
+
+  if (!client.connect(weatherHost, 80)) {
+    Serial.println("Hava durumu sunucusuna bağlantı hatası!");
+    return;
+  }
+
+  String url = "/data/2.5/weather?q=" + city + "&appid=" + weatherApiKey + "&units=metric";
+
+  client.print(String("GET ") + url + " HTTP/1.1\r\n" + "Host: " + weatherHost + "\r\n" + "Connection: close\r\n\r\n");
+
+  bool isBody = false;
+  String json = "";
+
+  while (client.connected() || client.available()) {
+    String line = client.readStringUntil('\n');
+    if (!isBody) {
+      if (line == "\r" || line.length() == 1) {
+        isBody = true;
+      }
+    } else {
+      json += line + "\n";
+    }
+  }
+
+  Serial.println("Gelen JSON: ");
+  Serial.println(json);
+
+  DynamicJsonDocument doc(4096);
+  DeserializationError error = deserializeJson(doc, json);
+
+  if (error) {
+    Serial.print("JSON ayrıştırma hatası: ");
+    Serial.println(error.c_str());
+    return;
+  }
+
+  float temp = doc["main"]["temp"];
+  float hum = doc["main"]["humidity"];
+  const char* weather = doc["weather"][0]["description"];
+
+  Serial.print("Sıcaklık: ");
+  Serial.print(temp);
+  Serial.println(" °C");
+
+  Serial.print("Nem: % ");
+  Serial.println(hum);
+
+  Serial.print("Durum: ");
+  Serial.println(weather);
+
+  veriKaydet(temp, hum, weather);
+}
+
+void veriKaydet(float temp, float hum, const char* weather) {
+
+  FirebaseJson json;
+  json.set("zaman damgasi", millis() / 1000);
+
+  if (Firebase.push(firebaseData, "/havaDurumu/veriler", json)) {
+
+    String id = firebaseData.pushName();
+    String veriYolu = "/havaDurumu/veriler/" + id;
+
+    Firebase.setFloat(firebaseData, veriYolu + "/sicaklik", temp);
+    Firebase.setFloat(firebaseData, veriYolu + "/nem", hum);
+    Firebase.setString(firebaseData, veriYolu + "/durum", weather);
+
+    Serial.println("Yeni kayıt veritabanına kaydedildi.");
+  } else {
+    Serial.print("Veri Yazma Hatası: ");
+    Serial.println(firebaseData.errorReason());
+  }
+}
+/*
+hava
+ └── veriler
+      └── -NfBcd123asX   ← Firebase'in otomatik oluşturduğu benzersiz ID
+            ├── sicaklik: 11.2
+            ├── nem: 82
+            ├── durum: "cloudy"
+            └── timestamp: 19283821
+*/

@@ -1,0 +1,30 @@
+#include <SoftwareSerial.h>
+
+#include <DHT.h>
+#include <DHT_U.h>
+
+SoftwareSerial baglanti(8, 7);  //rx,tx
+
+DHT dhtSensor(2, DHT11);
+
+int sicaklik, nemDegeri;
+String gelenVeri;
+
+void setup() {
+  Serial.begin(9600);
+  baglanti.begin(9600);
+  dhtSensor.begin();
+
+  pinMode(11, OUTPUT);
+}
+
+void loop() {
+  sicaklik = dhtSensor.readTemperature();
+  nemDegeri = dhtSensor.readHumidity();
+
+  Serial.println("-------------------------------");
+  Serial.println("Sıcaklık: " + String(sicaklik) + " °C");
+  Serial.println("Nem Degeri:% " + String(nemDegeri));
+
+  delay(1000);
+}

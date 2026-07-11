@@ -1,0 +1,68 @@
+#include <Servo.h>
+
+Servo myServo;  
+
+int butonPin = 2;      // Buton pini
+int butonDurum;        // Butonun basılıp basılmadığı
+int redPin = 9;        // RGB LED kırmızı bacağı
+int greenPin = 10;     // RGB LED yeşil bacağı
+int bluePin = 11;      // RGB LED mavi bacağı
+
+int dogruRenk = 2;     // 1 = kırmızı, 2 = yeşil, 3 = mavi (şifre)
+int aktifRenk = 1;     // O an yanan renk (1 = kırmızı, 2 = yeşil, 3 = mavi)
+
+void setup() {
+  pinMode(butonPin, INPUT);
+  pinMode(redPin, OUTPUT);
+  pinMode(greenPin, OUTPUT);
+  pinMode(bluePin, OUTPUT);
+
+  myServo.attach(6);      // Servo 6. pine bağlı
+  myServo.write(0);       // Başlangıçta kapalı
+  Serial.begin(9600);
+}
+
+void loop() {
+  // 1. Renkleri sırayla değiştiriyoruz (kırmızı -> yeşil -> mavi)
+  
+  // Kırmızı
+  digitalWrite(redPin, HIGH);
+  digitalWrite(greenPin, LOW);
+  digitalWrite(bluePin, LOW);
+  aktifRenk = 1;
+  kontrolEt();
+  delay(2000);
+
+  // Yeşil
+  digitalWrite(redPin, LOW);
+  digitalWrite(greenPin, HIGH);
+  digitalWrite(bluePin, LOW);
+  aktifRenk = 2;
+  kontrolEt();
+  delay(2000);
+
+  // Mavi
+  digitalWrite(redPin, LOW);
+  digitalWrite(greenPin, LOW);
+  digitalWrite(bluePin, HIGH);
+  aktifRenk = 3;
+  kontrolEt();
+  delay(2000);
+}
+
+// === Butona basıldığında kontrol ===
+void kontrolEt() {
+  butonDurum = digitalRead(butonPin);
+
+  if (butonDurum == HIGH) {
+    if (aktifRenk == dogruRenk) {
+      Serial.println("DOGRU RENK! KAPI ACILDI");
+      myServo.write(90);  // Kapı açılıyor
+      delay(5000);
+      myServo.write(0);
+    } else {
+      Serial.println("YANLIS RENK! KAPI KAPALI");
+      myServo.write(0);   // Kapı kapalı kalıyor
+    }
+  }
+}

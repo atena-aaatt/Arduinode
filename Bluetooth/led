@@ -1,0 +1,39 @@
+/*Kütüphane eklendi*/
+#include <SoftwareSerial.h>
+
+/*Baglanti nesnesi tanımlandı*/
+SoftwareSerial baglanti(7, 8);  //rx, tx
+
+/*LED'in bağlı olduğu pin tanımlandı*/
+byte ledPin = 13;
+
+/*Bluetooth modülüne gelecek veriler saklanacak*/
+String gelenVeri;
+
+void setup() {
+  Serial.begin(9600);
+
+  /*Baglanti nesnesi başlatıldı.*/
+  baglanti.begin(9600);
+
+  pinMode(ledPin, OUTPUT);
+}
+
+void loop() {
+  while (baglanti.available()) {
+    delay(3);
+    char gelenKarakter = baglanti.read();
+    gelenVeri = gelenKarakter + gelenVeri;
+  }
+
+  if (gelenVeri.length() > 0) {
+    if (gelenVeri == "ac" || gelenVeri == "1") {
+      digitalWrite(ledPin, HIGH);
+      Serial.println(gelenVeri);
+    } else if (gelenVeri == "kapat" || gelenVeri == "0") {
+      digitalWrite(ledPin, LOW);
+      Serial.println(gelenVeri);
+    }
+  }
+  gelenVeri = "";
+}
